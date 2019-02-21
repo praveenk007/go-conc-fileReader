@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
+	"log"
 	"os"
 )
 
@@ -12,13 +13,34 @@ func main() {
 		panic(err)
 	}
 	//f.Seek(6, 0)
-	r := bufio.NewReader(f)
+	channel := make(chan string, 20)
+	go read(f, channel)
+	for {
+		v, ok := <-channel
+		if ok == false {
+			break
+		}
+		fmt.Println(v)
+	}
+}
 
-	b, pref, err := r.ReadLine()
-	fmt.Println(string(b))
-	fmt.Println(pref)
+func read(file *os.File, channel chan string) {
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := file.Read(buf)
 
-	b1, pref1, _ := r.ReadLine()
-	fmt.Println(string(b1))
-	fmt.Println(pref1)
+		if n > 0 {
+			channel <- string(buf[:n]) // your read buffer.
+		}
+
+		if err == io.EOF {
+			close(channel)
+			break
+		}
+		if err != nil {
+			log.Printf("read %d bytes: %v", n, err)
+			close(channel)
+			break
+		}
+	}
 }
