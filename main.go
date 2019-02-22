@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	bufferSize := int64(10)
-	f, err := os.Open("tags-c.csv")
+	bufferSize := int64(100)
+	f, err := os.Open("tags.csv")
 	if err != nil {
 		panic(err)
 	}
@@ -34,27 +34,25 @@ func main() {
 		go read(i*bufferSize, f, channel, bufferSize, filesize, wg)
 
 	}
-	fmt.Println("waiting")
-	wg.Wait()
-	fmt.Println("wait over")
-	close(channel)
+	done := make(chan struct{})
 
-	readChannel(channel)
+	go readChannel(channel, done)
+	wg.Wait()
+	close(channel)
+	<-done
 }
 
-func readChannel(channel chan string) {
-	for {
-		data, more := <-channel
-		if more == false {
-			break
-		}
-		fmt.Print(data)
+func readChannel(channel chan string, done chan struct{}) {
+	for data := range channel {
+		_ = string(data)
+		//fmt.Print(data)
+		//do some processing
 	}
+	close(done)
 }
 
 func read(seek int64, file *os.File, channel chan string, bufferSize int64, filesize int64, wg *sync.WaitGroup) {
 	defer wg.Done()
-	fmt.Println("read :: ", seek)
 	var buf []byte
 	if filesize < bufferSize {
 		buf = make([]byte, filesize)
@@ -71,6 +69,5 @@ func read(seek int64, file *os.File, channel chan string, bufferSize int64, file
 	}
 	if n > 0 {
 		channel <- string(buf[:n])
-		fmt.Println("ret :: ", seek)
 	}
 }
