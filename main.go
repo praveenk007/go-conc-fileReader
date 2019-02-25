@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -29,6 +30,10 @@ func main() {
 	channel := make(chan string, 10)
 	wg := &sync.WaitGroup{}
 
+	startTime := time.Now()
+
+	fmt.Println("Start time :: ", startTime)
+
 	for i := int64(0); i < int64(routines); i++ {
 		wg.Add(1)
 		go read(i*bufferSize, f, channel, bufferSize, filesize, wg)
@@ -39,6 +44,9 @@ func main() {
 	go readChannel(channel, done)
 	wg.Wait()
 	close(channel)
+	endTime := time.Now()
+	fmt.Println("End time :: ", endTime)
+	fmt.Println("Total time (seconds) :: ", (endTime.UTC().Second() - startTime.UTC().Second()))
 	<-done
 }
 
